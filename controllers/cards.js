@@ -1,43 +1,53 @@
-const { card } = require('../models/card.js');
+const Card = require('../models/card.js');
 
 const getCards = (req, res) => {
-  card.find({})
-    .then((cards) => res.status(200).send(cards))
-    .catch((cards) => res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' }))
-    .catch((cards) => res.status(500).send(err))
+  return Card.find({})
+    .then((cards) => {
+      if (cards) {
+        return res.status(200).send(cards)
+      } else {
+        return res.status(400).send({ message: 'Переданы некорректные данные при создании карточки' })
+      }
+    })
+    .catch((err) => res.status(500).send(err))
 }
 
 const createCard = (req, res) => {
-  const { name, link} = req.body;
-    card.create({ name, link, owner: req.user._id })
+  const { name, link } = req.body;
+  return Card.create({ name, link })
     .then((card) => {
-      res.status(200).send(card)
+      if (card) {
+        return res.status(200).send(card)
+      } else {
+        return res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' })
+      }
     })
-    .catch((cards) => res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' }))
-    .catch((cards) => res.status(500).send(err))
+    .catch((err) => res.status(500).send(err))
 }
 
 const deleteCardById = (req, res) => {
-  card.findById({ id: req.params.id})
-  .then((cards) => {
-    if (card) {
-      res.status(200).send(card)
-    } else {
-      res.status(404).send({ message: 'Карточка с указанным _id не найдена.' })
-    }
-  })
+  const { cardId } = req.params.cardId;
+  return Card.findById(cardId)
+    .then((card) => {
+      if (card) {
+        return res.status(200).send(card)
+      } else {
+        return res.status(404).send({ message: 'Карточка с указанным _id не найдена.' })
+      }
+    })
+    .catch((err) => res.status(500).send(err))
 }
 
 const putCardLikesById = (req, res) => {
-  return card.findByIdAndUpdate(
-    req.params.cardId,
+  const { cardId } = req.params;
+  return Card.findByIdAndUpdate( cardId,
     { $addToSet: { likes: req.user._id } },
     { new: true },)
   .then((card) => {
     if (card) {
-      res.status(200).send(card)
+      return res.status(200).send(card)
     } else {
-      res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' })
+      return res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' }) ||
       res.status(404).send({ message: 'Передан несуществующий _id карточки.' })
     }
   })
@@ -45,16 +55,16 @@ const putCardLikesById = (req, res) => {
 }
 
 const deleteCardLikesById = (req, res) => {
-  return card.findByIdAndUpdate(
-    req.params.cardId,
+  const { cardId } = req.params;
+  return Card.findByIdAndUpdate( cardId,
     { $pull: { likes: req.user._id } },
     { new: true },
   )
   .then((card) => {
     if (card) {
-      res.status(200).send(card)
+      return res.status(200).send(card)
     } else {
-      res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' })
+      return res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' }) ||
       res.status(404).send({ message: 'Передан несуществующий _id карточки.' })
     }
   })

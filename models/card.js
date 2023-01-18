@@ -12,11 +12,11 @@ const cardSchema = new mongoose.Schema({
     required: true,
   },
   owner: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
   },
   likes: [{ // описываем схему для одного элемента и заключаем её в квадратные скобки
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     default: [],
   }],
   createdAt: {
