@@ -31,13 +31,14 @@ const deleteCardById = (req, res) => {
       if (!card) {
         return res.status(404).send({ message: 'Карточка с указанным _id не найдена.' });
       }
-      return res.status(200).send(card);
+      return card.remove();
     })
+    .then((card) => res.status(200).send(card))
     .catch((err) => res.status(500).send(err));
 };
 
 const putCardLikesById = (req, res) => {
-  const { cardId } = req.params.cardId;
+  const { cardId } = req.params;
   return Card.findByIdAndUpdate(
     cardId,
     { $addToSet: { likes: req.user._id } },
