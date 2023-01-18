@@ -29,11 +29,11 @@ const createUser = (req, res) => {
   const { name, about, avatar} = req.body;
   return User.create({ name, about, avatar })
     .then((user) => {
-      if (user) {
-        return res.status(200).send(user)
-      } else {
+      if (!user) {
         return res.status(400).send({ message: 'Переданы некорректные данные при создании пользователя.' })
-      }
+      } else {
+        return res.status(200).send(user)
+    }
     })
     .catch((err) => res.status(500).send(err))
 };
