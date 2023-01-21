@@ -1,4 +1,5 @@
 const Card = require('../models/card');
+const error = require('../middlewares/error');
 
 const getCards = (req, res) => {
   Card.find({})
@@ -8,7 +9,7 @@ const getCards = (req, res) => {
       if (err.message === 'ValidationError') {
         return res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
       }
-      return res.status(500).send(err);
+      return res.status(500).send(error);
     });
 };
 
@@ -22,20 +23,26 @@ const createCard = (req, res) => {
       if (err.message === 'ValidationError') {
         return res.status(400).send({ message: 'Переданы некорректные данные при создании карточки.' });
       }
-      return res.status(500).send(err);
+      return res.status(500).send(error);
     });
 };
 
 const deleteCardById = (req, res) => {
+  const ownerId = req.user._id;
   const { cardId } = req.params;
   return Card.findById(cardId)
     .orFail(new Error('notValidId'))
-    .then((card) => res.status(200).send(card))
+    .then((card) => {
+      if (card.owner === ownerId) {
+        res.status(200).send(card);
+      }
+      return res.status(400).send({ message: 'Невозможно удалить чужую карточку' });
+    })
     .catch((err) => {
       if (err.message === 'notValidId') {
         return res.status(404).send({ message: 'Карточка с указанным _id не найдена.' });
       }
-      return res.status(500).send(err);
+      return res.status(500).send(error);
     });
 };
 
@@ -55,7 +62,7 @@ const putCardLikesById = (req, res) => {
       } else if (err.name === 'ValidationError') {
         return res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' });
       }
-      return res.status(500).send(err);
+      return res.status(500).send(error);
     });
 };
 
@@ -75,7 +82,7 @@ const deleteCardLikesById = (req, res) => {
       } else if (err.name === 'ValidationError') {
         return res.status(400).send({ message: 'Переданы некорректные данные для постановки/снятии лайка. ' });
       }
-      return res.status(500).send(err);
+      return res.status(500).send(error);
     });
 };
 
