@@ -4,10 +4,10 @@ const {
 } = require('../controllers/users');
 const auth = require('../middlewares/auth');
 
-usersRouter.get('/users', auth, getUsers);
-usersRouter.get('/users/:userId', auth, getUserById);
-usersRouter.get('/users/me', auth, getOwner);
-usersRouter.patch('/users/me', auth, updateInformationUser);
-usersRouter.patch('/users/me/avatar', auth, updateAvatarUser);
+usersRouter.get('/', auth, getUsers);
+usersRouter.get('/me', auth, getOwner);
+usersRouter.get('/:userId', auth, getUserById);
+usersRouter.patch('/me', auth, updateInformationUser);
+usersRouter.patch('/me/avatar', auth, updateAvatarUser);
 
 module.exports = usersRouter;

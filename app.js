@@ -1,10 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
+const { celebrate, Joi } = require('celebrate');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
+const error = require('./middlewares/error');
+const NotFoundError = require('./errors/not-found-err');
 const {
   createUser, login,
 } = require('./controllers/users');
@@ -23,13 +25,25 @@ const limiter = rateLimit({
 
 app.use(limiter);
 app.use(helmet());
-app.use(bodyParser.json());
-app.use('/', usersRouter);
-app.use('/', cardsRouter);
+app.use(express.json());
+app.use('/users', usersRouter);
+app.use('/cards', cardsRouter);
 app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string(),
+    email: Joi.string().required().unique(),
+    password: Joi.string().required().unique(),
+  }),
+}), createUser);
+app.use(error);
+app.use((err, req, res, next) => {
+  res.status(err.statusCode).send({ message: err.message });
+});
 app.get('*', (req, res) => {
-  res.status(404).send('message: Запрашиваемый ресурс не найден');
+  throw new NotFoundError('Запрашиваемый ресурс не найден');
 });
 
 app.listen(PORT, () => {
