@@ -1,53 +1,50 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const User = require('../models/user');
 const NotFoundError = require('../errors/not-found-err');
 const SomethingWrongError = require('../errors/not-found-err');
 const AlreadyExistsError = require('../errors/already-exists-err');
 
-const getUsers = (req, res) => {
+const getUsers = (req, res, next) => {
   User.find({})
-    .then((user) => {
-      if (!user) {
-        throw new SomethingWrongError('Переданы некорректные данные при создании пользователя.');
-      }
-      return res.status(201).send(user);
-    })
-    .catch(next);
-};
-
-const getUserById = (req, res) => {
-  const { userId } = req.params;
-  return User.findById(userId)
-    .orFail(new Error('CastError'))
-    .then((user) => {
-      if (!user) {
-        throw new SomethingWrongError('Переданы некорректные данные при поиске пользователя.');
-      }
-      return res.status(201).send(user);
-    })
-    .catch((err) => {
-      if (err.message === 'CastError') {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
-      }
-      return next(err);
-    });
-};
-
-const getOwner = (req, res) => {
-  const userId = req.user._id;
-  return User.findById(userId)
-    .orFail(new Error('CastError'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err.message === 'CastError') {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
       }
       return next(err);
     });
 };
 
-const createUser = (req, res) => {
+const getUserById = (req, res, next) => {
+  const { userId } = req.params;
+  return User.findById(userId)
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err) {
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      }
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
+      }
+      return next(err);
+    });
+};
+
+const getOwner = (req, res, next) => {
+  const userId = req.user._id;
+  return User.findById(userId)
+    .then((user) => res.status(200).send(user))
+    .catch((err) => {
+      if (err) {
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      }
+      return next(err);
+    });
+};
+
+const createUser = (req, res, next) => {
   bcrypt.hash(req.body.password, 10)
     .then((hash) => User.create({
       email: req.body.email,
@@ -56,69 +53,64 @@ const createUser = (req, res) => {
       about: req.body.about,
       avatar: req.body.avatar,
     }))
-    .then((user) => {
-      if (!user) {
-        throw new SomethingWrongError('Переданы некорректные данные при создании пользователя');
-      }
-      return res.status(201).send(user);
-    })
+    .then((user) => res.status(201).send(user))
     .catch((err) => {
-      if (err.code === 11000) {
-        throw new AlreadyExistsError('Такой email уже существует.');
+      if (err) {
+        return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
       }
-      return next(err);
-    });
+      if (err.code === 11000) {
+        return next(new AlreadyExistsError('Такой email уже существует.'));
+      }
+      return res.send(err.errors.message);
+    })
+    .catch(next);
 };
 
-const updateInformationUser = (req, res) => {
+const updateInformationUser = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
   return User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
-    .orFail(new Error('CastError'))
-    .then((user) => {
-      if (!user) {
-        throw new SomethingWrongError('Переданы некорректные данные при обновлении профиля.');
-      }
-      return res.status(200).send(user);
-    })
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err.message === 'CastError') {
-        throw new NotFoundError('Пользователь с указанным _id не найден.');
+      if (err) {
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      }
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new SomethingWrongError('Переданы некорректные данные при обновлении профиля.'));
       }
       return next(err);
     });
 };
 
-const updateAvatarUser = (req, res) => {
+const updateAvatarUser = (req, res, next) => {
   const userId = req.user._id;
   const { avatar } = req.body;
   return User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
-    .orFail(new Error('CastError'))
-    .then((user) => {
-      if (!user) {
-        throw new SomethingWrongError('Переданы некорректные данные при обновлении профиля.');
-      }
-      return res.status(200).send(user);
-    })
+    .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err.message === 'CastError') {
-        throw new NotFoundError('Пользователь с указанным _id не найден.');
+      if (err) {
+        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      }
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new SomethingWrongError('Переданы некорректные данные при обновлении профиля.'));
       }
       return next(err);
     });
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, { expiresIn: '7d' });
-      if (!user) {
-        throw new SomethingWrongError('Неккоректный токен.');
-      }
-      return res.status(200).send({ token });
+      res.status(200).send({ token });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err instanceof mongoose.Error.ValidationError) {
+        return next(new SomethingWrongError('Неккоректный токен.'));
+      }
+      return next(err);
+    });
 };
 
 module.exports = {

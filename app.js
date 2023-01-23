@@ -1,6 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const { celebrate, Joi } = require('celebrate');
+const { celebrate, Joi, errors } = require('celebrate');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const usersRouter = require('./routes/users');
@@ -26,24 +26,27 @@ const limiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(express.json());
-app.use('/users', usersRouter);
-app.use('/cards', cardsRouter);
-app.post('/signin', login);
 app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
-    email: Joi.string().required(),
+    avatar: Joi.string().uri(),
+    email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
 }), createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+  }),
+}), login);
+app.use('/users', usersRouter);
+app.use('/cards', cardsRouter);
+app.use(errors());
 app.use(error);
-app.use((err, req, res, next) => {
-  res.status(err.statusCode).send({ message: err.message });
-});
-app.get('*', (req, res) => {
-  throw new NotFoundError('Запрашиваемый ресурс не найден');
+app.get('*', (req, res, next) => {
+  next(new NotFoundError('Запрашиваемый ресурс не найден'));
 });
 
 app.listen(PORT, () => {

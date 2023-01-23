@@ -9,8 +9,7 @@ cardsRouter.get('/', auth, getCards);
 cardsRouter.post('/', auth, celebrate({
   body: Joi.object().keys({
     name: Joi.string().required().min(2).max(30),
-    link: Joi.string().required(),
-    owner: Joi.required(),
+    link: Joi.string().uri().required(),
   }),
 }), createCard);
 cardsRouter.delete('/:cardId', auth, deleteCardById);
