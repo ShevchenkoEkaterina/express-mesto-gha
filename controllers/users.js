@@ -10,7 +10,7 @@ const getUsers = (req, res, next) => {
   User.find({})
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err instanceof mongoose.Error.ValidationError) {
+      if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
       }
       return next(err);
@@ -20,13 +20,14 @@ const getUsers = (req, res, next) => {
 const getUserById = (req, res, next) => {
   const { userId } = req.params;
   return User.findById(userId)
+    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      if (err instanceof mongoose.Error.ValidationError) {
-        return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new SomethingWrongError('Передан невалидный id'));
       }
       return next(err);
     });
@@ -35,10 +36,11 @@ const getUserById = (req, res, next) => {
 const getOwner = (req, res, next) => {
   const userId = req.user._id;
   return User.findById(userId)
+    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
       return next(err);
     });
@@ -55,25 +57,25 @@ const createUser = (req, res, next) => {
     }))
     .then((user) => res.status(201).send(user))
     .catch((err) => {
-      if (err) {
+      if (err instanceof mongoose.Error.ValidationError) {
         return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
       }
       if (err.code === 11000) {
         return next(new AlreadyExistsError('Такой email уже существует.'));
       }
-      return res.send(err.errors.message);
-    })
-    .catch(next);
+      return next(err);
+    });
 };
 
 const updateInformationUser = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
   return User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
+    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
       if (err instanceof mongoose.Error.ValidationError) {
         return next(new SomethingWrongError('Переданы некорректные данные при обновлении профиля.'));
@@ -101,13 +103,14 @@ const updateAvatarUser = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
+    .orFail(new NotFoundError('Неккоректный токен.'))
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, { expiresIn: '7d' });
       res.status(200).send({ token });
     })
     .catch((err) => {
-      if (err instanceof mongoose.Error.ValidationError) {
-        return next(new SomethingWrongError('Неккоректный токен.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
       return next(err);
     });

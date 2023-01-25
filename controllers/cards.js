@@ -9,7 +9,7 @@ const getCards = (req, res, next) => {
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err instanceof mongoose.Error.ValidationError) {
+      if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Переданы некорректные данные при создании карточки.'));
       }
       return next(err);
@@ -25,26 +25,28 @@ const createCard = (req, res, next) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return next(new SomethingWrongError('Переданы некорректные данные при создании карточки.'));
       }
-      return res.send(err.errors.message);
-    })
-    .catch(next);
+      return next(err);
+    });
 };
 
 const deleteCardById = (req, res, next) => {
   const ownerId = req.user._id;
   const { cardId } = req.params;
   return Card.findById(cardId)
-    .orFail(new Error('CastError'))
+    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .then((card) => {
       if (String(card.owner) === ownerId) {
-        card.remove();
+        return card.remove();
       }
-      return next(new NotAutorizedError('Невозможно удалить чужую карточку.'));
+      throw new NotAutorizedError('Невозможно удалить чужую карточку.');
     })
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Карточка с указанным _id не найдена.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
+      }
+      if (err instanceof mongoose.Error.CastError) {
+        return next(new SomethingWrongError('Передан невалидный id карточки.'));
       }
       return next(err);
     });
@@ -57,13 +59,14 @@ const putCardLikesById = (req, res, next) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .populate('owner')
+    .orFail(new NotFoundError('Передан несуществующий _id карточки.'))
+    .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Передан несуществующий _id карточки.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      if (err instanceof mongoose.Error.ValidationError) {
+      if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Переданы некорректные данные для постановки/снятии лайка.'));
       }
       return next(err);
@@ -77,13 +80,14 @@ const deleteCardLikesById = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .populate('owner')
+    .orFail(new NotFoundError('Передан несуществующий _id карточки.'))
+    .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Передан несуществующий _id карточки.'));
+      if (err instanceof NotFoundError) {
+        return next(err);
       }
-      if (err instanceof mongoose.Error.ValidationError) {
+      if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Переданы некорректные данные для постановки/снятии лайка.'));
       }
       return next(err);

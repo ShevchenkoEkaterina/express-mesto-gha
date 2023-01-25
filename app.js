@@ -30,7 +30,7 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string().uri(),
+    avatar: Joi.string().pattern(/https?:\/\/(w{3}\.)?[0-9a-z\-._~:/?#[\]@!$&'()*+,;=]+#?$/i),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
@@ -43,11 +43,11 @@ app.post('/signin', celebrate({
 }), login);
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
-app.use(errors());
-app.use(error);
-app.get('*', (req, res, next) => {
+app.use('*', (req, res, next) => {
   next(new NotFoundError('Запрашиваемый ресурс не найден'));
 });
+app.use(errors());
+app.use(error);
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
