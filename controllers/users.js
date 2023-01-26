@@ -9,12 +9,7 @@ const AlreadyExistsError = require('../errors/already-exists-err');
 const getUsers = (req, res, next) => {
   User.find({})
     .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err instanceof mongoose.Error.CastError) {
-        return next(new SomethingWrongError('Переданы некорректные данные при создании пользователя.'));
-      }
-      return next(err);
-    });
+    .catch(next);
 };
 
 const getUserById = (req, res, next) => {
@@ -103,17 +98,11 @@ const updateAvatarUser = (req, res, next) => {
 const login = (req, res, next) => {
   const { email, password } = req.body;
   return User.findUserByCredentials(email, password)
-    .orFail(new NotFoundError('Неккоректный токен.'))
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, { expiresIn: '7d' });
       res.status(200).send({ token });
     })
-    .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
-      return next(err);
-    });
+    .catch(next);
 };
 
 module.exports = {

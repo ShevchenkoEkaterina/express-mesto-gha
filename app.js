@@ -26,11 +26,12 @@ const limiter = rateLimit({
 app.use(limiter);
 app.use(helmet());
 app.use(express.json());
+
 app.post('/signup', celebrate({
   body: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
-    about: Joi.string().min(2).max(30),
-    avatar: Joi.string().pattern(/https?:\/\/(w{3}\.)?[0-9a-z\-._~:/?#[\]@!$&'()*+,;=]+#?$/i),
+    name: Joi.string().min(2).max(30).default('Жак-Ив Кусто'),
+    about: Joi.string().min(2).max(30).default('Исследователь'),
+    avatar: Joi.string().default('https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png').pattern(/https?:\/\/(w{3}\.)?[0-9a-z\-._~:/?#[\]@!$&'()*+,;=]+#?$/i),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),
@@ -41,8 +42,10 @@ app.post('/signin', celebrate({
     password: Joi.string().required(),
   }),
 }), login);
+
 app.use('/users', usersRouter);
 app.use('/cards', cardsRouter);
+
 app.use('*', (req, res, next) => {
   next(new NotFoundError('Запрашиваемый ресурс не найден'));
 });

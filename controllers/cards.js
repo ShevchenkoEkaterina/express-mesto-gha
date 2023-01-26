@@ -8,12 +8,7 @@ const getCards = (req, res, next) => {
   Card.find({})
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
-    .catch((err) => {
-      if (err instanceof mongoose.Error.CastError) {
-        return next(new SomethingWrongError('Переданы некорректные данные при создании карточки.'));
-      }
-      return next(err);
-    });
+    .catch(next);
 };
 
 const createCard = (req, res, next) => {
@@ -46,7 +41,7 @@ const deleteCardById = (req, res, next) => {
         return next(err);
       }
       if (err instanceof mongoose.Error.CastError) {
-        return next(new SomethingWrongError('Передан невалидный id карточки.'));
+        return next(new SomethingWrongError('Передан невалидный id.'));
       }
       return next(err);
     });
@@ -59,7 +54,7 @@ const putCardLikesById = (req, res, next) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new NotFoundError('Передан несуществующий _id карточки.'))
+    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
@@ -67,7 +62,7 @@ const putCardLikesById = (req, res, next) => {
         return next(err);
       }
       if (err instanceof mongoose.Error.CastError) {
-        return next(new SomethingWrongError('Переданы некорректные данные для постановки/снятии лайка.'));
+        return next(new SomethingWrongError('Передан невалидный id.'));
       }
       return next(err);
     });
@@ -80,7 +75,7 @@ const deleteCardLikesById = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new NotFoundError('Передан несуществующий _id карточки.'))
+    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
@@ -88,7 +83,7 @@ const deleteCardLikesById = (req, res, next) => {
         return next(err);
       }
       if (err instanceof mongoose.Error.CastError) {
-        return next(new SomethingWrongError('Переданы некорректные данные для постановки/снятии лайка.'));
+        return next(new SomethingWrongError('Передан невалидный id.'));
       }
       return next(err);
     });
