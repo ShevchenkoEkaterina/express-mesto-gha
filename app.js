@@ -10,6 +10,7 @@ const NotFoundError = require('./errors/not-found-err');
 const {
   createUser, login,
 } = require('./controllers/users');
+const regex = require('./utils/constants');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -31,7 +32,7 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30).default('Жак-Ив Кусто'),
     about: Joi.string().min(2).max(30).default('Исследователь'),
-    avatar: Joi.string().default('https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png').pattern(/https?:\/\/(w{3}\.)?[0-9a-z\-._~:/?#[\]@!$&'()*+,;=]+#?$/i),
+    avatar: Joi.string().default('https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png').pattern(regex),
     email: Joi.string().email().required(),
     password: Joi.string().required(),
   }),

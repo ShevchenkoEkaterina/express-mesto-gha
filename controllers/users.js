@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const User = require('../models/user');
-const NotFoundError = require('../errors/not-found-err');
 const SomethingWrongError = require('../errors/not-found-err');
 const AlreadyExistsError = require('../errors/already-exists-err');
 
@@ -15,12 +14,8 @@ const getUsers = (req, res, next) => {
 const getUserById = (req, res, next) => {
   const { userId } = req.params;
   return User.findById(userId)
-    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
       if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Передан невалидный id'));
       }
@@ -31,14 +26,8 @@ const getUserById = (req, res, next) => {
 const getOwner = (req, res, next) => {
   const userId = req.user._id;
   return User.findById(userId)
-    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
-    .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
-      return next(err);
-    });
+    .catch(next);
 };
 
 const createUser = (req, res, next) => {
@@ -66,12 +55,8 @@ const updateInformationUser = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
   return User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
-    .orFail(new NotFoundError('Пользователь по указанному _id не найден.'))
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
       if (err instanceof mongoose.Error.ValidationError) {
         return next(new SomethingWrongError('Переданы некорректные данные при обновлении профиля.'));
       }
@@ -85,9 +70,6 @@ const updateAvatarUser = (req, res, next) => {
   return User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((user) => res.status(200).send(user))
     .catch((err) => {
-      if (err) {
-        return next(new NotFoundError('Пользователь по указанному _id не найден.'));
-      }
       if (err instanceof mongoose.Error.ValidationError) {
         return next(new SomethingWrongError('Переданы некорректные данные при обновлении профиля.'));
       }

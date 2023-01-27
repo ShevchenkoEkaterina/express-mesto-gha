@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 const Card = require('../models/card');
-const NotFoundError = require('../errors/not-found-err');
 const SomethingWrongError = require('../errors/not-found-err');
 const NotAutorizedError = require('../errors/not-authorized-err');
 
@@ -28,7 +27,6 @@ const deleteCardById = (req, res, next) => {
   const ownerId = req.user._id;
   const { cardId } = req.params;
   return Card.findById(cardId)
-    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .then((card) => {
       if (String(card.owner) === ownerId) {
         return card.remove();
@@ -37,9 +35,6 @@ const deleteCardById = (req, res, next) => {
     })
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
       if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Передан невалидный id.'));
       }
@@ -54,13 +49,9 @@ const putCardLikesById = (req, res, next) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
       if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Передан невалидный id.'));
       }
@@ -75,13 +66,9 @@ const deleteCardLikesById = (req, res, next) => {
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .orFail(new NotFoundError('Карточка с указанным _id не найдена.'))
     .populate(['owner', 'likes'])
     .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err instanceof NotFoundError) {
-        return next(err);
-      }
       if (err instanceof mongoose.Error.CastError) {
         return next(new SomethingWrongError('Передан невалидный id.'));
       }
